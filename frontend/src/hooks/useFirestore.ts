@@ -16,12 +16,6 @@ interface UseCollectionResult<T> {
   error: Error | null
 }
 
-/**
- * Subscribe to a Firestore collection with real-time updates.
- *
- * @example
- * const { data, loading, error } = useCollection(usersCollection, where('role', '==', 'admin'))
- */
 export function useCollection<T extends DocumentData>(
   collectionRef: CollectionReference<T>,
   ...queryConstraints: QueryConstraint[]
@@ -39,18 +33,26 @@ export function useCollection<T extends DocumentData>(
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        setData(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as T[])
+        setData(
+          snapshot.docs.map((document) => ({
+            id: document.id,
+            ...document.data(),
+          })) as T[]
+        )
         setLoading(false)
       },
       (err) => {
+        console.error('Firestore subscription error:', err)
         setError(err)
         setLoading(false)
       }
     )
 
     return () => unsubscribe()
+
+    // Query constraints must trigger a new Firestore subscription when they change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [collectionRef])
+  }, [collectionRef, ...queryConstraints])
 
   return { data, loading, error }
 }
